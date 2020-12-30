@@ -90,6 +90,9 @@ namespace WindowsLayoutSnapshot {
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         internal static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
+        [DllImport("user32.dll")]
+        internal static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
         [DllImport("kernel32.dll")]
         internal static extern uint GetLastError();
 
