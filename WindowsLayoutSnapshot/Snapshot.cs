@@ -23,8 +23,9 @@ namespace WindowsLayoutSnapshot {
             UserInitiated = userInitiated;
 
             var pixels = new List<long>();
-            foreach (var screen in Screen.AllScreens)
+            foreach (var screen in Screen.AllScreens) {
                 pixels.Add(screen.Bounds.Width * screen.Bounds.Height);
+            }
             MonitorPixelCounts = pixels.ToArray();
             NumMonitors = pixels.Count;
         }
@@ -33,24 +34,44 @@ namespace WindowsLayoutSnapshot {
             return new Snapshot(userInitiated);
         }
 
-        private bool EvalWindow(int hwndInt, int lParam) {
+        private bool IsNormalPosition(int x, int y)
+        {
+            int zeroXY = 0;
+            int minimized = -32000;
+            int maximized = -8;
+
+            if (x == y && (x == zeroXY || x == minimized || x == maximized))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool EvalWindow(int hwndInt, int lParam)
+        {
             var hwnd = new IntPtr(hwndInt);
 
             if (!IsAltTabWindow(hwnd))
                 return true;
 
-            // EnumWindows returns windows in Z order from back to front
-            m_windowsBackToTop.Add(hwnd);
-
             WinInfo win = GetWindowInfo(hwnd);
-            m_infos.Add(hwnd, win);
+            if (IsNormalPosition(win.position.X, win.position.Y))
+            {
+                m_infos.Add(hwnd, win);
+
+                // EnumWindows returns windows in Z order from back to front
+                m_windowsBackToTop.Add(hwnd);
+            }
 
 #if DEBUG
             // For debugging purpose, output window title with handle
             int textLength = 256;
             System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
             int a = GetWindowText(hwnd, outText, outText.Capacity);
-            Debug.WriteLine(hwnd + " " + win.position + " " + outText);
+            int pid = 0;
+            GetWindowThreadProcessId(hwnd, out pid);
+            Debug.WriteLine(hwnd + " " + win.position + " " + outText + " Pid=" + pid);
 #endif
 
             return true;
@@ -62,8 +83,7 @@ namespace WindowsLayoutSnapshot {
         internal int NumMonitors { get; private set; }
 
         public string GetDisplayString() {
-            DateTime dt = TimeTaken.ToLocalTime();
-            return dt.ToString("M") + ", " + dt.ToString("T");
+            return TimeTaken.ToLocalTime().ToString("MMM dd, hh:mm:ss");
         }
 
         internal TimeSpan Age {
@@ -97,6 +117,20 @@ namespace WindowsLayoutSnapshot {
                 // make sure window will be inside a monitor
                 Rectangle newpos = GetRectInsideNearestMonitor(win);
 
+#if DEBUG
+                Rectangle real = win.position;
+                Rectangle rect = win.visible;
+                Rectangle monitorRect = Screen.GetWorkingArea(rect);
+                if (newpos != real)
+                {
+                    // For debugging purpose, output window title with handle
+                    int textLength = 256;
+                    System.Text.StringBuilder outText = new System.Text.StringBuilder(textLength + 1);
+                    GetWindowText(placement.Key, outText, outText.Capacity);
+                    Debug.WriteLine("[" + placement.Key + ": " + outText + "] " + "Moving " + real + "→" + newpos + " in monitor " + monitorRect);
+                }
+#endif
+
                 if (!SetWindowPos(placement.Key, 0, newpos.Left, newpos.Top, newpos.Width, newpos.Height, 0x0004 /*NOZORDER*/))
                     Debug.WriteLine("Can't move window " + placement.Key + ": " + GetLastError());
             }
@@ -128,10 +162,6 @@ namespace WindowsLayoutSnapshot {
                     y.Width - rect.Width + real.Width,
                     y.Height - rect.Height + real.Height
                 );
-#if DEBUG
-            if (y != real)
-                Debug.WriteLine("Moving " + real + "→" + y + " in monitor " + monitorRect);
-#endif
             return y;
         }
 
