@@ -14,7 +14,6 @@ namespace WindowsLayoutSnapshot {
 
         private Timer m_snapshotTimer = new Timer();
         private List<Snapshot> m_snapshots = new List<Snapshot>();
-        private Snapshot m_menuShownSnapshot = null;
         private Padding? m_originalTrayMenuArrowPadding = null;
         private Padding? m_originalTrayMenuTextPadding = null;
 
