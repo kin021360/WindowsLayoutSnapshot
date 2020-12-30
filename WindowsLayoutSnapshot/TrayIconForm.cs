@@ -51,14 +51,6 @@ namespace WindowsLayoutSnapshot {
             UpdateRestoreChoicesInMenu();
         }
 
-        private void justNowToolStripMenuItem_Click(object sender, EventArgs e) {
-            m_menuShownSnapshot.Restore(null, EventArgs.Empty);
-        }
-
-        private void justNowToolStripMenuItem_MouseEnter(object sender, EventArgs e) {
-            SnapshotMousedOver(sender, e);
-        }
-
         private class RightImageToolStripMenuItem : ToolStripMenuItem {
             public RightImageToolStripMenuItem(string text)
                 : base(text) {
@@ -124,7 +116,6 @@ namespace WindowsLayoutSnapshot {
                 var menuItem = new RightImageToolStripMenuItem(snapshot.GetDisplayString());
                 menuItem.Tag = snapshot;
                 menuItem.Click += snapshot.Restore;
-                menuItem.MouseEnter += SnapshotMousedOver;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
@@ -141,7 +132,6 @@ namespace WindowsLayoutSnapshot {
                 newMenuItems.Add(menuItem);
             }
 
-            newMenuItems.Add(justNowToolStripMenuItem);
             newMenuItems.Add(snapshotListStartLine);
             newMenuItems.Add(clearSnapshotsToolStripMenuItem);
             newMenuItems.Add(snapshotToolStripMenuItem);
@@ -244,24 +234,6 @@ namespace WindowsLayoutSnapshot {
             return y;
         }
 
-        private void SnapshotMousedOver(object sender, EventArgs e) {
-            // We save and restore the current foreground window because it's our tray menu
-            // I couldn't find a way to get this handle straight from the tray menu's properties;
-            //   the ContextMenuStrip.Handle isn't the right one, so I'm using win32
-            // More info RE the restore is below, where we do it
-            var currentForegroundWindow = GetForegroundWindow();
-
-            try {
-                ((Snapshot)(((ToolStripMenuItem)sender).Tag)).Restore(sender, e);
-            } finally {
-                // A combination of SetForegroundWindow + SetWindowPos (via set_Visible) seems to be needed
-                // This was determined by trying a bunch of stuff
-                // This prevents the tray menu from closing, and makes sure it's still on top
-                SetForegroundWindow(currentForegroundWindow);
-                trayMenu.Visible = true;
-            }
-        }
-
         private void quitToolStripMenuItem_Click(object sender, EventArgs e) {
             Application.Exit();
         }
@@ -271,9 +243,6 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void trayIcon_MouseClick(object sender, MouseEventArgs e) {
-            m_menuShownSnapshot = Snapshot.TakeSnapshot(false);
-            justNowToolStripMenuItem.Tag = m_menuShownSnapshot;
-
             // the context menu won't show by default on left clicks.  we're going to have to ask it to show up.
             if (e.Button == MouseButtons.Left) {
                 try {
