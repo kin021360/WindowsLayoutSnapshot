@@ -83,7 +83,7 @@ namespace WindowsLayoutSnapshot {
         internal int NumMonitors { get; private set; }
 
         public string GetDisplayString() {
-            return TimeTaken.ToLocalTime().ToString("MMM dd, hh:mm:ss");
+            return TimeTaken.ToLocalTime().ToString("MMM dd, HH:mm:ss");
         }
 
         internal TimeSpan Age {
